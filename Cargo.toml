@@ -3,6 +3,10 @@ name = "raxsdk"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+assert_fs = "1.0.13"
+predicates = "3.0.4"
+test-case = "3.3.1"
