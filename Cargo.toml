@@ -1,12 +1,8 @@
-[package]
-name = "raxsdk"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+    "axsdk",
+    "axsdk-examples"
+]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
-[dependencies]
-assert_fs = "1.0.13"
-predicates = "3.0.4"
-test-case = "3.3.1"
+package.rust-version = "1.73"
+resolver = "2"

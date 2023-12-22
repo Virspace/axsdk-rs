@@ -1,0 +1,808 @@
+pub use core::ffi::c_void;
+
+// Macros /////////////////////////////////////////////////////
+macro_rules! unsafe_impl_default_zeroed {
+  ($t:ty) => {
+    impl Default for $t {
+      #[inline]
+      #[must_use]
+      fn default() -> Self {
+        unsafe { core::mem::zeroed() }
+      }
+    }
+  };
+}
+
+// macro_rules! MAKEINTRESOURCEW {
+//     ($i:expr) => {{
+//         (($i as usize) as *const u16).wrapping_offset(0)
+//     }}
+// }
+
+// Types //////////////////////////////////////////////////////
+
+#[repr(C)]
+struct POINT {
+    x: LONG,
+    y: LONG
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct MSG {
+    hwnd: HWND,
+    message: u32,
+    wParam: WPARAM,
+    lParam: LPARAM,
+    time: u32,
+    pt: POINT,
+    lPrivate: u32
+}
+
+#[repr(C)]
+struct PAINTSTRUCT {
+    hdc: HDC,
+    fErase: BOOL,
+    rcPaint: RECT,
+    fRestore: BOOL,
+    fIncUpdate: BOOL,
+    rgbReserved: [u8; 32]
+}
+
+#[repr(C)]
+struct EDITMENU {
+   hmenu: HMENU,
+   idEdit: WORD,
+   idCut: WORD,
+   idCopy: WORD,
+   idPaste: WORD,
+   idClear: WORD,
+   idUndo: WORD
+}
+
+#[repr(C)]
+#[derive(Default)]
+struct TRACKMOUSEEVENT {
+    cbSize: DWORD,
+    dwFlags: DWORD,
+    hwndTrack: HWND,
+    dwHoverTime: DWORD
+}
+
+#[repr(C)]
+struct WNDCLASSEXW {
+    cbSize: UINT,
+    style: UINT,
+    lpfnWndProc: WNDPROC,
+    cbClsExtra: i32,
+    cbWndExtra: i32,
+    hInstance: HINSTANCE,
+    hIcon: HICON,
+    hCursor: HCURSOR,
+    hbrBackground: HBRUSH,
+    lpszMenuName: LPCWSTR,
+    lpszClassName: LPCWSTR,
+    hIconSm: HICON
+}
+
+impl WNDCLASSEXW {
+    pub fn default() -> Self {
+        WNDCLASSEXW {
+            cbSize: 0,
+            style: 0,
+            lpfnWndProc: 0,
+            cbClsExtra: 0,
+            cbWndExtra: 0,
+            hInstance: 0,
+            hIcon: 0,
+            hCursor: 0,
+            hbrBackground: 0,
+            lpszMenuName: 0,
+            lpszClassName: 0,
+            hIconSm: 0
+        }
+    }
+}
+
+#[repr(C)]
+pub struct LPOPENFILENAMEW {
+    pub lStructSize: c_int,
+    pub hwndOwner: HANDLE,
+    pub hInstance: HANDLE,
+    pub lpstrFilter: *mut u16,
+    pub lpstrCustomFilter: *mut u16,
+    pub nMaxCustFilter: DWORD,
+    pub nFilterIndex: DWORD,
+    pub lpstrFile: *mut u16,
+    pub nMaxFile: DWORD,
+    pub lpstrFileTitle: *mut u16,
+    pub nMaxFileTitle: DWORD,
+    pub lpstrInitialDir: *const u16,
+    pub lpstrTitle: *const u16,
+    pub Flags: DWORD,
+    pub nFileOffset: WORD,
+    pub nFileExtension: WORD,
+    pub lpstrDefExt: *const u16,
+    pub lCustData: LPARAM,
+    pub lpfnHook: LPOFNHOOKPROC,
+    pub lpTemplateName: *const u16,
+    pub pvReserved: *mut c_void,
+    pub dwReserved: DWORD,
+    pub FlagsEx: DWORD,
+}
+#[repr(C)]
+struct RAWINPUTHEADER {
+    dwType: DWORD,
+    dwSize: DWORD,
+    hDevice: HANDLE,
+    wParam: WPARAM
+}
+
+#[repr(C)]
+pub struct RAWMOUSE {
+    pub usFlags: u16,
+    pub Anonymous: RAWMOUSE_0,
+    pub ulRawButtons: u32,
+    pub lLastX: i32,
+    pub lLastY: i32,
+    pub ulExtraInformation: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RAWMOUSE_0_0 {
+    pub usButtonFlags: u16,
+    pub usButtonData: u16,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union RAWMOUSE_0 {
+    pub ulButtons: u32,
+    pub Anonymous: RAWMOUSE_0_0,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RAWHID {
+    pub dwSizeHid: u32,
+    pub dwCount: u32,
+    pub bRawData: [u8; 1],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union RAWINPUT_0 {
+    pub mouse: RAWMOUSE,
+    pub keyboard: RAWKEYBOARD,
+    pub hid: RAWHID,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RAWINPUT {
+    pub header: RAWINPUTHEADER,
+    pub data: RAWINPUT_0,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct RAWINPUTDEVICE {
+    pub usUsagePage: u16,
+    pub usUsage: u16,
+    pub dwFlags: RAWINPUTDEVICE_FLAGS,
+    pub hwndTarget: HWND,
+}
+
+// Raw format of the keyboard input
+#[repr(C)]
+struct RAWKEYBOARD {
+    MakeCode: u16,
+    Flags: u16,
+    Reserved: u16,
+    VKey: u16,
+    Message: u32,
+    ExtraInformation: u32
+}
+
+pub type BFFCALLBACK = Option<unsafe extern "system" fn(hwnd: HWND, umsg: u32, lparam: LPARAM, lpdata: LPARAM) -> i32>;
+
+#[repr(C)]
+struct SHITEMID {
+    cb: USHORT,
+    abID: [BYTE; 1],
+}
+
+unsafe_impl_default_zeroed!(SHITEMID);
+
+#[repr(C)]
+struct ITEMIDLIST {
+    mkid: SHITEMID,
+}
+
+unsafe_impl_default_zeroed!(ITEMIDLIST);
+
+type RAWINPUTDEVICE_FLAGS = u32;
+type ITEMIDLIST_ABSOLUTE = ITEMIDLIST;
+type PCIDLIST_ABSOLUTE = *const ITEMIDLIST_ABSOLUTE;
+
+#[repr(C)]
+struct BROWSEINFOW {
+    hwndOwner: HWND,
+    pidlRoot: PCIDLIST_ABSOLUTE,
+    pszDisplayName: LPWSTR,
+    lpszTitle: LPCWSTR,
+    ulFlags: UINT,
+    lpfn: BFFCALLBACK,
+    lParam: LPARAM,
+    iImage: i32
+}
+
+unsafe_impl_default_zeroed!(BROWSEINFOW);
+
+#[repr(C)]
+struct DPI_AWARENESS_CONTEXT__ {
+    unused: c_int
+}
+
+pub type DPI_AWARENESS_CONTEXT = isize;
+pub const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2: DPI_AWARENESS_CONTEXT = -4i32 as _; // -4isize
+
+type LPEDITMENU = *mut EDITMENU;
+
+type CDHOOKPROC = extern "system" fn(HWND, UINT, WPARAM, LPARAM) -> UINT_PTR;
+type LPOFNHOOKPROC = Option<CDHOOKPROC>;
+
+type ATOM = WORD;
+type BOOL = i32;
+type BYTE = u8;
+type c_int = i32;
+type c_long = i32;
+type c_uint = u32;
+type c_ulong = u32;
+type c_ushort = u16;
+type c_char = i8;
+type DWORD = u32;
+type HANDLE = PVOID;
+type HBRUSH = HANDLE;
+type HCURSOR = HICON;
+type HDC = HANDLE;
+type HICON = HANDLE;
+type HINSTANCE = HANDLE;
+type HMENU = HANDLE;
+type HMODULE = HINSTANCE;
+type HMONITOR = isize;
+type HWND = HANDLE;
+type LONG = i32;
+type LONG_PTR = isize;
+type LPARAM = isize;
+type LPCSTR = *const u8;
+type LPCWSTR = *const u16;
+type LPMSG = *mut MSG;
+type LPPAINTSTRUCT = *mut PAINTSTRUCT;
+type LPVOID = *mut c_void;
+type LPCVOID = *const c_void;
+type va_list = *mut c_char;
+type LPWSTR = *mut WCHAR;
+type LRESULT = LONG_PTR;
+type PVOID = *mut c_void;
+type UINT = u32;
+type UINT_PTR = usize;
+type ULONG_PTR = usize;
+type USHORT = u16;
+type WCHAR = u16;
+type wchar_t = u16;
+type WORD = u16;
+type WPARAM = UINT_PTR;
+type HLOCAL = HANDLE;
+type FLOAT = f32;
+type c_float = f32;
+type SHORT = i16;
+type LPRECT = *mut RECT;
+type PWSTR = *mut WCHAR;
+
+type WNDPROC   = Option<
+  unsafe extern "system" fn(
+    hwnd: HWND,
+    uMsg: UINT,
+    wParam: WPARAM,
+    lParam: LPARAM,
+  ) -> LRESULT,
+>;
+
+// Win32 //////////////////////////////////////////////////////
+
+#[repr(C)]
+struct WNDCLASSW {
+  style: UINT,
+  lpfnWndProc: WNDPROC,
+  cbClsExtra: c_int,
+  cbWndExtra: c_int,
+  hInstance: HINSTANCE,
+  hIcon: HICON,
+  hCursor: HCURSOR,
+  hbrBackground: HBRUSH,
+  lpszMenuName: LPCWSTR,
+  lpszClassName: LPCWSTR,
+}
+
+unsafe_impl_default_zeroed!(WNDCLASSW);
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RECT {
+  pub left: LONG,
+  pub top: LONG,
+  pub right: LONG,
+  pub bottom: LONG,
+}
+
+unsafe_impl_default_zeroed!(RECT);
+
+#[repr(C)]
+struct OPENFILENAMEW {
+    lStructSize: DWORD,
+    hwndOwner: HWND,
+    hInstance: HINSTANCE,
+    lpstrFilter: LPCWSTR,
+    lpstrCustomFilter: LPWSTR,
+    nMaxCustFilter: DWORD,
+    nFilterIndex: DWORD,
+    lpstrFile: LPWSTR,
+    nMaxFile: DWORD,
+    lpstrFileTitle: LPWSTR,
+    nMaxFileTitle: DWORD,
+    lpstrInitialDir: LPCWSTR,
+    lpstrTitle: LPCWSTR,
+    Flags: DWORD,
+    nFileOffset: WORD,
+    nFileExtension: WORD,
+    lpstrDefExt: LPCWSTR,
+    lCustData: LPARAM,
+    lpfnHook: LPOFNHOOKPROC,
+    lpTemplateName: LPCWSTR,
+    lpEditInfo: LPEDITMENU,
+    lpstrPrompt: LPCSTR,
+    pvReserved: u64, // TODO(mdeforge): This was void*... is this going to work?
+    dwReserved: DWORD,
+    FlagsEx: DWORD
+}
+
+unsafe_impl_default_zeroed!(OPENFILENAMEW);
+
+enum MONITOR_DPI_TYPE {
+    MDT_EFFECTIVE_DPI = 0,
+    MDT_ANGULAR_DPI = 1,
+    MDT_RAW_DPI = 2,
+    MDT_DEFAULT
+}
+
+/*
+ * WM_KEYUP/DOWN/CHAR HIWORD(lParam) flags
+ */
+const KF_EXTENDED: u32       = 0x0100;
+const KF_DLGMODE: u32        = 0x0800;
+const KF_MENUMODE: u32       = 0x1000;
+const KF_ALTDOWN: u32        = 0x2000;
+const KF_REPEAT: u32         = 0x4000;
+const KF_UP: u32             = 0x8000;
+
+//typedef HRESULT (WINAPI *GetDpiForMonitorPtr)(Monitor: HMONITOR, int DPIType, UINT * XDPI, UINT *YDPI);
+
+// Forward declarations
+// static GetDpiForMonitorPtr GetDpiForMonitor;
+
+// HMODULE ShcoreHandle = LoadLibrary("shcore");
+//     GetDpiForMonitor = (GetDpiForMonitorPtr)GetProcAddress(ShcoreHandle, "GetDpiForMonitor");
+
+fn BrowseCallbackProc(hwnd: HWND, uMsg: UINT, lp: LPARAM, pData: LPARAM) -> i32 {
+    if uMsg == BFFM_INITIALIZED {
+        unsafe { SendMessage(hwnd, BFFM_SETSELECTIONW, true, pData) };
+    }
+
+    return 0;
+}
+
+#[link(name = "ShCore.dll")]
+extern "system" {
+    pub fn GetDpiForMonitor(
+        hmonitor: HMONITOR,
+        dpiType: MONITOR_DPI_TYPE,
+        dpiX: *mut UINT,
+        dpiY: *mut UINT
+      ) -> HRESULT;
+}
+
+#[link(name = "Comdlg32")]
+extern "system" {
+    pub fn GetOpenFileNameW(open_filename: LPOPENFILENAMEW) -> BOOL;
+}
+
+#[link(name = "Kernel32")]
+extern "system" {
+    /// [`GetModuleHandleW`](https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew)
+    pub fn GetModuleHandleW(lpModuleName: LPCWSTR) -> HMODULE;
+
+    /// [`GetLastError`](https://learn.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-getlasterror)
+    pub fn GetLastError() -> DWORD;
+}
+
+#[link(name = "Shell32")]
+extern "system" {
+    pub fn SHBrowseForFolderW(lpbi: LPBROWSEINFOW) -> PIDLIST_ABSOLUTE;
+
+    pub fn SHGetPathFromIDListEx(
+        pidl: PCIDLIST_ABSOLUTE,
+        pszPath: PWSTR,
+        cchPath: DWORD,
+        uOpts: i32
+    ) -> BOOL;
+}
+
+#[link(name = "User32")]
+extern "system" {
+    /// [`RegisterClassW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerclassw)
+    pub fn RegisterClassExW(unnamedParam1: *const WNDCLASSEXW) -> ATOM;
+
+    /// [`UnregisterClassW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-unregisterclassw)
+    pub fn UnregisterClassW(lpClassName: LPCWSTR, hInstance: HINSTANCE) -> BOOL;
+
+
+    /// [`CreateWindowExW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-createwindowexw)
+    pub fn CreateWindowExW(
+        dwExStyle: DWORD, lpClassName: LPCWSTR, lpWindowName: LPCWSTR,
+        dwStyle: DWORD, X: c_int, Y: c_int, nWidth: c_int, nHeight: c_int,
+        hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE, lpParam: LPVOID,
+    ) -> HWND;
+
+    /// [`DefWindowProcW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-defwindowprocw)
+        pub fn DefWindowProcW(
+        hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM,
+    ) -> LRESULT;
+
+    /// [`ShowWindow`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-showwindow)
+    pub fn ShowWindow(hWnd: HWND, nCmdShow: c_int) -> BOOL;
+
+    /// [`GetMessageW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmessagew)
+    pub fn GetMessageW(
+        lpMsg: LPMSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT,
+    ) -> BOOL;
+
+    /// [`TranslateMessage`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-translatemessage)
+    pub fn TranslateMessage(lpMsg: *const MSG) -> BOOL;
+
+    /// [`DispatchMessageW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-dispatchmessagew)
+    pub fn DispatchMessageW(lpMsg: *const MSG) -> LRESULT;
+
+    /// [`DestroyWindow`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-destroywindow)
+    pub fn DestroyWindow(hWnd: HWND) -> BOOL;
+
+    /// [`PostQuitMessage`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-postquitmessage)
+    pub fn PostQuitMessage(nExitCode: c_int);
+
+    /// [`LoadCursorW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadcursorw)
+    pub fn LoadCursorW(hInstance: HINSTANCE, lpCursorName: LPCWSTR) -> HCURSOR;
+
+    /// [`BeginPaint`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-beginpaint)
+    pub fn BeginPaint(hWnd: HWND, lpPaint: LPPAINTSTRUCT) -> HDC;
+
+    /// [`FillRect`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-fillrect)
+    pub fn FillRect(hDC: HDC, lprc: *const RECT, hbr: HBRUSH) -> c_int;
+
+    /// [`EndPaint`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-endpaint)
+    pub fn EndPaint(hWnd: HWND, lpPaint: *const PAINTSTRUCT) -> BOOL;
+
+    /// [`MessageBoxW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messageboxw)
+    pub fn MessageBoxW(
+    hWnd: HWND, lpText: LPCWSTR, lpCaption: LPCWSTR, uType: UINT,
+    ) -> c_int;
+
+    /// [`SetWindowLongPtrW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowlongptrw)
+    pub fn SetWindowLongPtrW(
+    hWnd: HWND, nIndex: c_int, dwNewLong: LONG_PTR,
+    ) -> LONG_PTR;
+
+    /// [`GetWindowLongPtrW`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowlongptrw)
+    pub fn GetWindowLongPtrW(hWnd: HWND, nIndex: c_int) -> LONG_PTR;
+
+    /// [`SetCursor`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setcursor)
+    pub fn SetCursor(hCursor: HCURSOR) -> HCURSOR;
+
+    /// [`GetDC`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getdc)
+    pub fn GetDC(hWnd: HWND) -> HDC;
+
+    /// [`ReleaseDC`](https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-releasedc)
+    pub fn ReleaseDC(hWnd: HWND, hDC: HDC) -> c_int;
+
+    /// [`GetKeyState`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getkeystate)
+    pub fn GetKeyState(nVirtKey: i32) -> SHORT;
+
+    /// [`GetPropW`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getpropw)
+    pub fn GetPropW(hWnd: HWND, lpString: LPCWSTR) -> HANDLE;
+
+    /// [`SetProcessDpiAwarenessContext`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setprocessdpiawarenesscontext)
+    pub fn SetProcessDpiAwarenessContext(value: DPI_AWARENESS_CONTEXT) -> BOOL;
+
+    /// [`AdjustWindowRectExForDpi`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-adjustwindowrectexfordpi)
+    pub fn AdjustWindowRectExForDpi(
+        lpRect: LPRECT,
+        dwStyle: DWORD,
+        bMenu: BOOL,
+        dwExStyle: DWORD,
+        dpi: UINT
+      ) -> BOOL;
+
+    /// [`SetFocus`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setfocus)
+    pub fn SetFocus(hWnd: HWND) -> HWND;
+
+    /// [`UpdateWindow`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatewindow)
+    pub fn UpdateWindow(hWnd: HWND) -> BOOL;
+
+    /// [`GetClientRect`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclientrect)
+    pub fn GetClientRect(hWnd: HWND, lpRect: LPRECT) -> BOOL;
+
+    /// [`SetWindowPos`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos)
+    pub fn SetWindowPos(
+        hWnd: HWND,
+        hWndInsertAfter: HWND,
+        X: i32,
+        Y: i32,
+        cx: i32,
+        cy: i32,
+        uFlags: UINT
+    ) -> BOOL;
+
+    /// [`RemovePropW`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-removepropw)
+    pub fn RemovePropW(hWnd: HWND, lpString: LPCWSTR) -> HANDLE;
+
+    /// [`GetSaveFileNameW`](https://learn.microsoft.com/en-us/windows/win32/api/commdlg/nf-commdlg-getsavefilenamew)
+    pub fn  GetSaveFileNameW(unnamedParam1: LPOPENFILENAMEW) -> BOOL;
+
+    /// [`SetPropW`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setpropw)
+    pub fn SetPropW(hWnd: HWND, lpString: LPCWSTR, hData: HANDLE) -> BOOL;
+
+    /// [`MonitorFromWindow`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-monitorfromwindow)
+    pub fn MonitorFromWindow(hwnd: HWND, dwFlags: DWORD) -> HMONITOR;
+
+    /// [`RegisterRawInputDevices`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerrawinputdevices)
+    pub fn RegisterRawInputDevices(pRawInputDevices: *const RAWINPUTDEVICE, uiNumDevices: UINT, cbSize: UINT);
+
+    /// [`SendMessage`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessage)
+    pub fn SendMessage(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
+
+    /// [`GetWindowRect`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect)
+    pub fn GetWindowRect(hWnd: HWND, lpRect: LPRECT) -> BOOL;
+
+    /// [`PeekMessageW`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-peekmessagew)
+    pub fn PeekMessageW(lpMsg: LPMSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT) -> BOOL;
+
+    /// [`MapVirtualKeyW`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-mapvirtualkeyw)
+    pub fn MapVirtualKeyW(uCode: UINT, uMapType: UINT) -> UINT;
+
+    /// [`TrackMouseEvent`](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-trackmouseevent)
+    pub fn TrackMouseEvent(lpEventTrack: *mut TRACKMOUSEEVENT) -> BOOL;
+}
+
+// Consts /////////////////////////////////////////////////////
+
+// TODO(mdeforge): Where to put these?
+type LPBROWSEINFOW = *mut BROWSEINFOW;
+type LPITEMIDLIST = *mut ITEMIDLIST;
+type PIDLIST_ABSOLUTE = LPITEMIDLIST;
+type HRESULT = i32;
+
+fn loword(l: usize) -> u16 {
+    ((l as usize) & 0xffff) as u16
+}
+
+fn hiword(l: usize) -> u16 {
+    (((l as usize) >> 16) & 0xffff) as u16
+}
+
+const RIDEV_NOLEGACY: u32 = 0x00000030;
+const MAPVK_VK_TO_VSC: u32 = 0;
+
+// WM_NCHITTEST and MOUSEHOOKSTRUCT Mouse Position Codes
+const HTCLIENT: u32 = 1;
+
+// Multimonitor API.
+const MONITOR_DEFAULTTONULL: u32    = 0x00000000;
+const MONITOR_DEFAULTTOPRIMARY: u32 = 0x00000001;
+const MONITOR_DEFAULTTONEAREST: u32 = 0x00000002;
+
+const USER_DEFAULT_SCREEN_DPI: u32 = 96;
+
+// Success Codes
+const S_OK: u32 = 0;
+const S_FALSE: u32 = 1;
+
+// Message Box
+/// The message box contains three push buttons: Abort, Retry, and Ignore.
+const MB_ABORTRETRYIGNORE: u32  = 0x00000002;
+/// The message box contains three push buttons: Cancel, Try Again, Continue. Use this message box type instead of MB_ABORTRETRYIGNORE.
+const MB_CANCELTRYCONTINUE: u32 = 0x00000006;
+/// Adds a Help button to the message box. When the user clicks the Help button or presses F1, the system sends a WM_HELP message to the owner.
+const MB_HELP: u32              = 0x00004000;
+/// The message box contains one push button: OK. This is the default.
+const MB_OK: u32                = 0x00000000;
+/// The message box contains two push buttons: OK and Cancel.
+const MB_OKCANCEL: u32          = 0x00000001;
+/// The message box contains two push buttons: Retry and Cancel.
+const MB_RETRYCANCEL: u32       = 0x00000005;
+/// The message box contains two push buttons: Yes and No.
+const MB_YESNO: u32             = 0x00000004;
+/// The message box contains three push buttons: Yes, No, and Cancel.
+const MB_YESNOCANCEL: u32       = 0x00000003;
+/// A hand icon appears in the message box.
+const MB_ICONHAND: u32          = 0x00000010;
+/// An exclamation-point icon appears in the message box.
+const MB_ICONEXCLAMATION: u32   = 0x00000030;
+/// An error icon appears in the message box.
+const MB_ICONERROR: u32 = MB_ICONHAND;
+/// An asterisk icon appears in the message box.
+const MB_ICONASTERISK: u32      = 0x00000040;
+/// A warning icon appears in the message box.
+const MB_ICONWARNING: u32 = MB_ICONEXCLAMATION;
+/// A stop icon appears in the message box.
+const MB_ICONSTOP: u32 = MB_ICONHAND;
+/// An information icon appears in the message box.
+const MB_ICONINFORMATION: u32 = MB_ICONASTERISK;
+/// A question icon appears in the message box.
+const MB_ICONQUESTION: u32 = 0x00000020;
+
+const MB_DEFBUTTON1: u32 = 0x00000000;
+const MB_DEFBUTTON2: u32 = 0x00000100;
+const MB_DEFBUTTON3: u32 = 0x00000200;
+const MB_DEFBUTTON4: u32 = 0x00000300;
+const MB_APPLMODAL: u32 = 0x00000000;
+const MB_SYSTEMMODAL: u32 = 0x00001000;
+const MB_TASKMODAL: u32 = 0x00002000;
+
+// Browsing for directory.
+
+/// Use the new dialog layout with the ability to resize
+const BIF_NEWDIALOGSTYLE: u32 = 0x00000040;
+
+// message from browser
+const BFFM_INITIALIZED: u32 = 1;
+const BFFM_SELCHANGED: u32 = 2;
+
+// messages to browser
+const WM_USER: u32 = 0x0400;
+const BFFM_SETSELECTIONW: u32 = WM_USER + 103;
+
+// From hidusage.h
+
+/// Generic Desktop Controls Usage Pages
+const HID_USAGE_PAGE_GENERIC: i16           = 0x01;
+/// Generic Mouse
+const HID_USAGE_GENERIC_MOUSE: i16          = 0x02;
+/// Generic Keyboard
+const HID_USAGE_GENERIC_KEYBOARD: i16       = 0x06;
+
+// Class Styles
+/// Redraws the entire window if a movement or size adjustment changes the width of the client area.
+const CS_HREDRAW: u8 = 0x0002;
+
+/// Redraws the entire window if a movement or size adjustment changes the height of the client area.
+const CS_VREDRAW: u8 = 0x0001;
+
+const CS_OWNDC: u8 = 0x0020;
+
+// Window Styles
+
+const WS_OVERLAPPED: u32       = 0x00000000;
+const WS_POPUP: u32            = 0x80000000;
+const WS_CHILD: u32            = 0x40000000;
+const WS_MINIMIZE: u32         = 0x20000000;
+const WS_VISIBLE: u32          = 0x10000000;
+const WS_DISABLED: u32         = 0x08000000;
+const WS_MAXIMIZE: u32         = 0x01000000;
+const WS_CAPTION: u32          = 0x00C00000;     /* WS_BORDER | WS_DLGFRAME  */
+const WS_BORDER: u32           = 0x00800000;
+const WS_DLGFRAME: u32         = 0x00400000;
+const WS_VSCROLL: u32          = 0x00200000;
+const WS_HSCROLL: u32          = 0x00100000;
+const WS_SYSMENU: u32          = 0x00080000;
+const WS_THICKFRAME: u32       = 0x00040000;
+const WS_GROUP: u32            = 0x00020000;
+const WS_TABSTOP: u32          = 0x00010000;
+
+/// Clips child windows relative to each other.
+///
+/// That is, when a particular child window receives a WM_PAINT message,
+/// the WS_CLIPSIBLINGS style clips all other overlapping child windows out of
+/// the region of the child window to be updated. If WS_CLIPSIBLINGS is not
+/// specified and child windows overlap, it is possible, when drawing within the
+/// client area of a child window, to draw within the client area of a
+/// neighboring child window.
+const WS_CLIPSIBLINGS: u32 = 0x04000000;
+/// Excludes the area occupied by child windows when drawing occurs within the parent window.
+/// This style is used when creating the parent window.
+const WS_CLIPCHILDREN: u32 = 0x02000000;
+/// The window has a minimize button.
+/// Cannot be combined with the WS_EX_CONTEXTHELP style. The WS_SYSMENU style must also be specified.
+const WS_MINIMIZEBOX: u32  = 0x00020000;
+/// The window has a maximize button.
+/// Cannot be combined with the WS_EX_CONTEXTHELP style. The WS_SYSMENU style must also be specified.
+const WS_MAXIMIZEBOX: u32  = 0x00010000;
+
+// Show Window Styles
+
+/// Hides the window and activates another window.
+const SW_HIDE: c_int = 0;
+/// Activates the window and displays it in its current size and position.
+const SW_SHOW: c_int = 5;
+
+// Arrow
+const IDC_ARROW: u32 = 32512;
+
+// Key Modifiers
+const VK_SHIFT: u32            = 0x10;
+const VK_CONTROL: u32          = 0x11;
+const VK_MENU: u32             = 0x12;
+const VK_PAUSE: u32            = 0x13;
+const VK_CAPITAL: u32          = 0x14;
+const VK_LWIN: u32             = 0x5B;
+const VK_RWIN: u32             = 0x5C;
+const VK_SPACE: u32            = 0x20;
+const VK_PRIOR: u32            = 0x21;
+const VK_NEXT: u32             = 0x22;
+const VK_END: u32              = 0x23;
+const VK_HOME: u32             = 0x24;
+const VK_LEFT: u32             = 0x25;
+const VK_UP: u32               = 0x26;
+const VK_RIGHT: u32            = 0x27;
+const VK_DOWN: u32             = 0x28;
+const VK_SELECT: u32           = 0x29;
+const VK_PRINT: u32            = 0x2A;
+const VK_EXECUTE: u32          = 0x2B;
+const VK_SNAPSHOT: u32         = 0x2C;
+const VK_INSERT: u32           = 0x2D;
+const VK_DELETE: u32           = 0x2E;
+const VK_HELP: u32             = 0x2F;
+
+const WM_KEYDOWN: u32          = 0x0100;
+const WM_KEYUP: u32            = 0x0101;
+const WM_CHAR: u32             = 0x0102;
+const WM_CLOSE: u32             = 0x0010;
+const WM_WINDOWPOSCHANGING: u32 = 0x0046;
+const WM_SYSKEYDOWN: u32        = 0x0104;
+const WM_SYSKEYUP: u32          = 0x0105;
+const WM_LBUTTONDOWN: u32       = 0x0201;
+const WM_LBUTTONUP: u32         = 0x0202;
+const WM_RBUTTONDOWN: u32       = 0x0204;
+const WM_RBUTTONUP: u32         = 0x0205;
+const WM_XBUTTONDOWN: u32       = 0x020B;
+const WM_XBUTTONUP: u32         = 0x020C;
+const WM_MBUTTONDOWN: u32       = 0x0207;
+const WM_MBUTTONUP: u32         = 0x0208;
+const WM_MOUSEMOVE: u32         = 0x0200;
+const WM_MOUSELEAVE: u32        = 0x02A3;
+const WM_INPUT: u32             = 0x00FF;
+const WM_DPICHANGED: u32        = 0x02E0;
+const SETCURSOR: u32            = 0x0020;
+
+const XBUTTON1: u32             = 0x0001;
+const XBUTTON2: u32             = 0x0002;
+
+// SetWindowPos Flags
+const SWP_NOSIZE: u32          = 0x0001;
+const SWP_NOMOVE: u32          = 0x0002;
+const SWP_NOZORDER: u32        = 0x0004;
+const SWP_NOREDRAW: u32        = 0x0008;
+const SWP_NOACTIVATE: u32      = 0x0010;
+const SWP_FRAMECHANGED: u32    = 0x0020;  /* The frame changed: send WM_NCCALCSIZE */
+const SWP_SHOWWINDOW: u32      = 0x0040;
+const SWP_HIDEWINDOW: u32      = 0x0080;
+const SWP_NOCOPYBITS: u32      = 0x0100;
+const SWP_NOOWNERZORDER: u32   = 0x0200;  /* Don't do owner Z ordering */
+const SWP_NOSENDCHANGING: u32  = 0x0400;  /* Don't send WM_WINDOWPOSCHANGING */
+
+const OFN_NOCHANGEDIR: u32     = 0x00000008;
+const OFN_PATHMUSTEXIST: u32   = 0x00000800;
+const OFN_FILEMUSTEXIST: u32   = 0x00001000;
+
+// Key state makes for mouse messages
+const TME_HOVER: u32 = 0x00000001;
+const TME_LEAVE: u32 = 0x00000002;

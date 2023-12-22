@@ -1,2 +1,2 @@
 pub mod foundation;
-//pub mod foo;
+pub mod plugins;
