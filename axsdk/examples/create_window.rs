@@ -1,15 +1,59 @@
 use axsdk::plugins::{*, axwindow::axwindow::AxWindow};
+use windows::{
+    core::*,
+    Win32::{
+        Foundation::*,
+        System::LibraryLoader::*,
+        UI::WindowsAndMessaging::*,
+        UI::HiDpi::*,
+        UI::Input::*,
+        UI::Input::KeyboardAndMouse::*,
+        Devices::HumanInterfaceDevice::*,
+        UI::TextServices::*,
+        Graphics::Gdi::*,
+        UI::Controls::*,
+        UI::Controls::Dialogs::*
+    }
+};
+struct App {
+    window: Box<AxWindow>
+}
+
+impl App {
+    pub fn new() -> Self {
+        let window = AxWindow::new( "AxonEngine");
+
+        App {
+            window: window
+        }
+    }
+    
+    pub fn tick(&mut self) -> bool {
+        self.window.poll_events();
+        
+        if self.window.has_requested_close {
+            println!("App detected request to close");
+            return false;
+        }
+
+        true
+    }
+    
+    pub fn destroy(&mut self) {
+        println!("App is destroying window");
+        self.window.destroy();
+    }   
+}
 
 fn main() {
-    let mut _window = AxWindow::new( "AxonEngine");
+    let mut app = App::new();
 
-    let mut should_close = false;
-    while !should_close {
-        _window.poll_events();
+    while app.tick() {
+       
+    }
 
-        if _window.has_requested_close {
-            should_close = true;
-            println!("Window has requested close");
-        }
+    unsafe {
+        app.destroy();
+        println!("{:?}", GetLastError());
     }
 }

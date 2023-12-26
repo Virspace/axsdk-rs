@@ -1,4 +1,3 @@
-use std::mem;
 use windows::{
     core::*,
     Win32::{
@@ -16,46 +15,53 @@ use windows::{
     }
 };
 
+// TODO(mdeforge): wndproc needs to somehow know the window title before it gets the AxWindow...
+
 /// Turns a Rust string slice into a null-terminated utf-16 vector.
-pub fn wide_null(s: String) -> Vec<u16> {
-    s.encode_utf16().collect()
-  }
+pub fn wide_null(text: String) -> Vec<u16> {
+    let mut new_text: Vec<_> = text.encode_utf16().collect();
+    new_text.push(0);
+
+    new_text
+}
 
 #[derive(Default)]
 pub struct AxWindow {
     title: String,
     handle: HWND,
     instance: HMODULE,
-    pub has_requested_close: bool
+    pub has_requested_close: bool,
+    pub has_requested_quit: bool
 }
 
 impl AxWindow {
-    pub fn new<S: AsRef<str>>(title: S) -> Self {
-        let mut window = AxWindow::default();
+    pub fn new<S: AsRef<str>>(title: S) -> Box<AxWindow> {
+        let mut window = Box::new(AxWindow::default());
+
         unsafe {
             window.instance = GetModuleHandleA(None).unwrap();
-            window.title = title.as_ref().to_string();
-            
             debug_assert!(window.instance.0 != 0);
+            
+            window.title = title.as_ref().to_string();
 
-            let window_class = w!("window");
-
-            let _wc = WNDCLASSW {
-                hCursor: LoadCursorW(None, IDC_ARROW).unwrap(),
-                hInstance: window.instance.into(),
-                lpszClassName: window_class,
-                
+            let class_name = w!("window");
+            let window_class = WNDCLASSW {
+                //cbSize: size_of::<WNDCLASSEXW>() as u32,
                 style: CS_HREDRAW | CS_VREDRAW,
                 lpfnWndProc: Some(wndproc),
+                hInstance: window.instance.into(),
+                hCursor: LoadCursorW(None, IDC_ARROW).unwrap(),
+                //hbrBackground: HBRUSH(0),
+                lpszClassName: class_name,
                 ..Default::default()
             };
 
-            let atom = RegisterClassW(&_wc);
+            let atom = RegisterClassW(&window_class);
             debug_assert!(atom != 0);
 
             window.handle = CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
-                window_class,
+                class_name,
                 PCWSTR(wide_null(window.title.clone()).as_ptr()),
                 WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                 CW_USEDEFAULT,
@@ -68,22 +74,28 @@ impl AxWindow {
                 None,
             );
 
-            //let address: isize = &window as *const _ as isize;
-            let address = &mut window as *mut _ as isize;
-            let s = PCWSTR(wide_null(window.title.clone()).as_ptr());
-            SetPropW(window.handle, s, HANDLE(address)).unwrap();
-            //SetPropW(window.handle, s, HANDLE(123)).unwrap();
-            println!("Done creating!");
+            let address = Box::as_mut(&mut window) as *mut _ as isize;
+            let name: PCWSTR = PCWSTR(wide_null(window.title.clone()).as_ptr());
+            SetPropW(window.handle, name, HANDLE(address)).unwrap();
         }
 
         window
     }
 
-    // pub fn register(&self) {
-    //     unsafe {
-    //         SetPropW(self.handle, PCWSTR(wide_null(self.title.clone()).as_ptr()), );
-    //     }
-    // }
+    pub fn destroy(&mut self) {
+        unsafe {
+            if self.handle.0 != 0 {
+                println!("Destroying window");
+                let title = String::from("AxonEngine");
+                let wide_title = PCWSTR(wide_null(title.clone()).as_ptr());
+
+                RemovePropW(self.handle, wide_title).unwrap();
+                DestroyWindow(self.handle).unwrap();
+                //PostQuitMessage(0);
+                self.handle = HWND(0);
+            }
+        }
+    }
 
     pub fn poll_events(&mut self) {
         unsafe {
@@ -131,34 +143,35 @@ impl AxWindow {
 
 extern "system" fn wndproc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     unsafe {
-        let name = String::from("AxonEngine");
-        let title = PCWSTR(wide_null(name.clone()).as_ptr());
-        //let window: *mut AxWindow = mem::transmute(GetPropW(hwnd, w!("AxonEngine")));
-        let handle = GetPropW(hwnd, title);
-        //let address = &mut window as *mut _ as isize;
+        let title = String::from("AxonEngine");
+        let wide_title = PCWSTR(wide_null(title.clone()).as_ptr());
+
+        // Get AxWindow
+        let handle = GetPropW(hwnd, wide_title);
         let restored_pointer: *mut AxWindow = handle.0 as *mut AxWindow; 
-        let window = &mut *restored_pointer;
-        //let window: *mut AxWindow = &handle.0 as *const _ as *mut AxWindow;
         if restored_pointer.is_null() {
             return DefWindowProcW(hwnd, msg, wparam, lparam);
         }
+        
+        let window = &mut *restored_pointer;
 
+        // Match message and return
         match msg {
-            WM_PAINT => {
-                println!("WM_PAINT");
-                ValidateRect(hwnd, None);
+            WM_CLOSE => {
+                println!("WM_CLOSE");
+                window.has_requested_close = true;
+                //window.destroy();
                 LRESULT(0)
             }
             WM_DESTROY => {
                 println!("WM_DESTROY");
-                PostQuitMessage(0);
                 LRESULT(0)
             }
-            WM_CLOSE => {
-                println!("WM_CLOSE");
-                window.has_requested_close = true;
-                LRESULT(0)
-            }
+            // WM_PAINT => {
+            //     println!("WM_PAINT");
+            //     ValidateRect(hwnd, None);
+            //     LRESULT(0)
+            // }
             _ => DefWindowProcA(hwnd, msg, wparam, lparam),
         }
     }
